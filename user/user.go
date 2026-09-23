@@ -1,6 +1,6 @@
 package user
 
-type UserRole int
+type UserRole uint8
 
 const (
 	RoleAdmin UserRole = 0
@@ -8,16 +8,16 @@ const (
 )
 
 type UserInfo struct {
-	ID   int
+	ID   uint64
 	Name string
 	Role UserRole
 }
 
 func (u *UserInfo) GetRoleName() string {
-	return RoleMap[u.Role]
+	return UserRoles[u.Role]
 }
 
-const RoleMap = map[UserRole]string{
+var UserRoles = map[UserRole]string{
 	RoleAdmin: "admin",
 	RoleUser:  "user",
 }
