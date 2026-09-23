@@ -1,0 +1,4 @@
+CREATE TABLE carts (
+    cart_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE
+);
