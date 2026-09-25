@@ -1,4 +1,4 @@
-package user
+package model
 
 type UserRole uint8
 

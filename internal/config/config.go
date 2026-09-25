@@ -59,7 +59,7 @@ func LoadConfig() (*Config, error) {
 		Port: os.Getenv("PORT"),
 		DB: PostgresConfig{
 			Username: os.Getenv("POSTGRES_USER"),
-			Password: os.Getenv("POSTGRES_PWD"), // POSTGRES_PW
+			Password: os.Getenv("POSTGRES_PWD"),
 			URL:      os.Getenv("POSTGRES_URL"),
 			Port:     os.Getenv("POSTGRES_PORT"),
 		},

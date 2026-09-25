@@ -7,7 +7,7 @@ import (
 	"module/internal/config"
 	"module/internal/database"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -25,13 +25,13 @@ func main() {
 	}
 
 	// Connect to DB
-	conn, err := pgx.Connect(ctx, cfg.DB.URL)
+	conn, err := pgxpool.New(ctx, cfg.DB.URL)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer conn.Close(ctx)
+	defer conn.Close()
 
 	var migrator = database.Migration{}
 	if err := migrator.RunMigration(MigrationPath, DriverName, cfg.DB.URL); err != nil {
