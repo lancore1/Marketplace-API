@@ -1,23 +1,13 @@
 package model
 
-type UserRole uint8
+import "github.com/google/uuid"
 
-const (
-	RoleAdmin UserRole = 0
-	RoleUser  UserRole = 1
-)
-
-type UserInfo struct {
-	ID   uint64
-	Name string
-	Role UserRole
-}
-
-func (u *UserInfo) GetRoleName() string {
-	return UserRoles[u.Role]
-}
-
-var UserRoles = map[UserRole]string{
-	RoleAdmin: "admin",
-	RoleUser:  "user",
+type User struct {
+	UserID       uuid.UUID `db:"user_id" json:"user_id"`
+	Login        string    `db:"login" json:"login"`
+	PasswordHash string    `db:"password_hash" json:"-"`
+	FirstName    *string   `db:"first_name" json:"first_name,omitempty"`
+	LastName     *string   `db:"last_name" json:"last_name,omitempty"`
+	Email        string    `db:"email" json:"email"`
+	RoleID       int32     `db:"role_id" json:"role_id"`
 }
