@@ -1,6 +1,10 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type User struct {
 	UserID       uuid.UUID `db:"user_id" json:"user_id"`
@@ -10,4 +14,6 @@ type User struct {
 	LastName     *string   `db:"last_name" json:"last_name,omitempty"`
 	Email        string    `db:"email" json:"email"`
 	RoleID       int32     `db:"role_id" json:"role_id"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
 }
