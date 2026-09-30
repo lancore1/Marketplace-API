@@ -5,5 +5,7 @@ CREATE TABLE users (
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     email VARCHAR(100) NOT NULL UNIQUE,
-    role_id INT NOT NULL REFERENCES user_roles(role_id) ON DELETE RESTRICT
+    role_id INT NOT NULL REFERENCES user_roles(role_id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
