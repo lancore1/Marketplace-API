@@ -1,85 +1,41 @@
 package database
 
 import (
-	"database/sql"
-	"embed"
-	"errors"
+	"context"
 	"fmt"
+	"time"
 
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/golang-migrate/migrate/v4/source"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Compiler directive
-//
-//go:embed migration/*sql
-var MigrationFS embed.FS
-
-type Migration struct {
-	srcDriver source.Driver
+type PoolConfig struct {
+	MaxConns        int32         // Maximum number of connections in the pool
+	MinConns        int32         // Minimum number of connections (reserve)
+	MaxConnLifetime time.Duration // Maximum connection lifetime
+	MaxConnIdleTime time.Duration // Maximum connection idle time before closing
 }
 
-func (m *Migration) newMigration(sqlFiles embed.FS, migrationPath string) (*Migration, error) {
-	// Create a new iofs driver instance.
-	driver, err := iofs.New(sqlFiles, migrationPath)
+func ConnectPGX(ctx context.Context, connectURL string, cfg *PoolConfig) (*pgxpool.Pool, error) {
+	// Get the pool config from dsn
+	poolConfig, err := pgxpool.ParseConfig(connectURL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create iofs driver instance: %w", err)
+		return nil, fmt.Errorf("failed to parse DSN: %w", err)
 	}
 
-	return &Migration{
-		srcDriver: driver,
-	}, nil
-}
+	poolConfig.MaxConns = cfg.MaxConns
+	poolConfig.MinConns = cfg.MinConns
+	poolConfig.MaxConnLifetime = cfg.MaxConnLifetime
+	poolConfig.MaxConnIdleTime = cfg.MaxConnIdleTime
 
-// ApplyMigrationToDB applies the migration to the database connection.
-func (m *Migration) applyMigrationToDB(db *sql.DB) error {
-	// Create a new postgres driver instance.
-	psqlDriver, err := postgres.WithInstance(db, &postgres.Config{})
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
-		return fmt.Errorf("unable to create db instance: %w", err)
+		return nil, fmt.Errorf("failed to create pgx pool: %w", err)
 	}
 
-	// Create a new migration instance with driver source and postgres driver.
-	migrator, err := migrate.NewWithInstance("migration_embeded_sql_files", m.srcDriver, "psql_db", psqlDriver)
-	if err != nil {
-		return fmt.Errorf("unable to create migration: %w", err)
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Close the migrator when done.
-	defer func() {
-		migrator.Close()
-	}()
-
-	// Apply the migration
-	if err = migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return fmt.Errorf("unable to apply migration: %w", err)
-	}
-
-	return nil
-}
-
-func (m *Migration) RunMigration(migrationPath string, driverName string, connectionStr string) error {
-
-	migrator, err := m.newMigration(MigrationFS, migrationPath)
-	if err != nil {
-		return fmt.Errorf("unable to create new migration at launch: %w", err)
-	}
-
-	// Get the DB instance.
-	conn, err := sql.Open(driverName, connectionStr)
-	if err != nil {
-		return fmt.Errorf("unable with get DB instance at launch: %w", err)
-	}
-
-	defer conn.Close()
-
-	// Apply migrations
-	err = migrator.applyMigrationToDB(conn)
-	if err != nil {
-		return fmt.Errorf("unable with apply migration at launch: %w", err)
-	}
-
-	return nil
+	return pool, nil
 }

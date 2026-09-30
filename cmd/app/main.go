@@ -6,8 +6,8 @@ import (
 	"log"
 	"module/internal/config"
 	"module/internal/database"
-
-	"github.com/jackc/pgx/v5/pgxpool"
+	"sync"
+	"time"
 )
 
 const (
@@ -16,6 +16,15 @@ const (
 )
 
 var ctx = context.Background()
+var wg = sync.WaitGroup{}
+var rw = sync.RWMutex{}
+
+var poolCfg = database.PoolConfig{
+	MaxConns:        25,               // Maximum number of connections in the pool
+	MinConns:        5,                // Minimum number of connections (reserve)
+	MaxConnLifetime: 1 * time.Hour,    // Maximum connection lifetime
+	MaxConnIdleTime: 30 * time.Minute, // Maximum connection idle time before closing
+}
 
 func main() {
 	//Load CFG
@@ -25,19 +34,15 @@ func main() {
 	}
 
 	// Connect to DB
-	conn, err := pgxpool.New(ctx, cfg.DB.URL)
+	ctxTimeOut, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelFunc()
 
+	connection, err := database.ConnectPGX(ctxTimeOut, cfg.DB.URL, &poolCfg)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer conn.Close()
-
-	var migrator = database.Migration{}
-	if err := migrator.RunMigration(MigrationPath, DriverName, cfg.DB.URL); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Database connection error: %v", err)
 	} else {
-		fmt.Println("Migration is succesfull")
+		fmt.Println("Connect succesfull")
 	}
 
+	defer connection.Close()
 }
